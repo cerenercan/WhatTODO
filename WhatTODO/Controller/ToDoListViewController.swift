@@ -6,33 +6,25 @@
 //  Copyright © 2020 Ceren Ercan. All rights reserved.
 //
 
+//        DOCUMENTS DIRECTORY TO FIND THE PLIST
+//        let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+//        print(dataFilePath!)
+
 import UIKit
 
 class ToDoListViewController: UITableViewController {
 
+    
     var itemArray = [Items]()
     
-    let userDefaults = UserDefaults.standard
+    //        CREATING NEW DIRECTORY FOR THE NEW PLIST THAT WE WILL CREATE
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let newItem = Items()
-        newItem.title = "Find Mike"
-        itemArray.append(newItem)
-        
-        let newItem2 = Items()
-        newItem2.title = "Buy Eggos"
-        itemArray.append(newItem2)
-        
-        let newItem3 = Items()
-        newItem3.title = "Destroy Demogorgon"
-        itemArray.append(newItem3)
-        
-        
-        if let items = userDefaults.array(forKey: "TODOListArray") as? [Items] {
-            itemArray = items
-        }
+
+        loadItems()
+ 
     }
     
     //MARK: - DataSource Methods
@@ -40,6 +32,8 @@ class ToDoListViewController: UITableViewController {
         return itemArray.count
     }
     
+//    ADDING ROWS FOR THE NEW ADDED ITEM AND ADDING CHECKMARKS TO THEM IF THE ACTIVITY IS COMPLETED OR BOOL==TRUE OR REMOVING
+//    THE CHECKMARK TO UNDO THE ACTIVITY OR BOOL==FALSE
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = UITableViewCell(style: .default, reuseIdentifier: "ToDoItemCell")
@@ -55,8 +49,9 @@ class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
-        tableView.reloadData()
+        saveItems()
         tableView.deselectRow(at: indexPath, animated: true)
+        
     }
     //MARK: - Add New Items
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
@@ -72,8 +67,8 @@ class ToDoListViewController: UITableViewController {
             
 //        ADDING THE NEW ITEM TO THE ARRAY AND THE TABLE
             self.itemArray.append(newItem)
-            self.userDefaults.set(self.itemArray, forKey: "TODOListArray")
-            self.tableView.reloadData()
+            self.saveItems()
+            
         }
 //        CREATING NEW ITEM BY PRESSING THE ADD(+) BUTTON
         alert.addTextField { (alertTextField) in
@@ -87,6 +82,38 @@ class ToDoListViewController: UITableViewController {
         
     }
     
+    //MARK: - Model Manipulation Methods
+//    ENCODE THE ITEMS AND MAKING THE CHANGES IN THE PLIST BUT NOT SAVING THE ADDED ITEMS
+    func saveItems(){
+        
+        let encoder = PropertyListEncoder()
+        
+        do{
+            
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+            
+        } catch {
+            print("Error encoding item array, \(error)")
+        }
+        self.tableView.reloadData()
+    }
     
+    func loadItems(){
+        
+        if let data = try? Data(contentsOf: dataFilePath!) {
+            
+            let decoder = PropertyListDecoder()
+            
+            do{
+                
+            itemArray = try decoder.decode([Items].self, from: data)
+                
+            } catch {
+                print("Error decoding item array, \(error)")
+            }
+        }
+        
+    }
 }
 
